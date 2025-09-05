@@ -1,135 +1,100 @@
-
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.metrics import mean_squared_error, mean_absolute_error
+# 1. Load Dataset (Apple Stock Prices)
 
-# -------------------------
-# Step 1: Load Dataset
-# -------------------------
-url = "https://raw.githubusercontent.com/jbrownlee/Datasets/master/airline-passengers.csv"
-data = pd.read_csv(url, usecols=[1])
-ts = data.values.astype(float).flatten()   # <--- add .flatten()
+url = "https://raw.githubusercontent.com/plotly/datasets/master/finance-charts-apple.csv"
+data = pd.read_csv(url)
 
+# Use the 'AAPL.Close' column
+ts = data['AAPL.Close'].values.astype(float).flatten()
 
 print("First 10 values of the dataset:")
 print(ts[:10])
 
-# Plot original data
-plt.plot(ts)
-plt.title("Monthly Airline Passengers")
-plt.xlabel("Month")
-plt.ylabel("Passengers")
-plt.show()
+# 2. Differencing Function (I part)
+def difference(series, interval=1):
+    diff = []
+    for i in range(interval, len(series)):
+        diff.append(series[i] - series[i - interval])
+    return np.array(diff)
 
-# -------------------------
-# Step 2: Differencing
-# -------------------------
-def difference(series, d=1):
-    diff_series = series.copy()
-    for _ in range(d):
-        diff_series = diff_series[1:] - diff_series[:-1]
-    return diff_series
+# 3. Autoregression (AR part)
 
-d = 1
-diff_ts = difference(ts, d)
-plt.plot(diff_ts)
-plt.title("Differenced Series")
-plt.show()
-
-# -------------------------
-# Step 3: AR model
-# -------------------------
 def fit_ar(series, p):
-    X = np.array([series[i:i+p] for i in range(len(series)-p)])
-    y = np.array([series[i+p] for i in range(len(series)-p)])
+    X, y = [], []
+    for i in range(p, len(series)):
+        X.append(series[i - p:i])
+        y.append(series[i])
+    X, y = np.array(X), np.array(y)
     coeffs = np.linalg.lstsq(X, y, rcond=None)[0]
     return coeffs
 
-def predict_ar(series, coeffs):
-    p = len(coeffs)
-    return np.dot(series[-p:], coeffs)
+def predict_ar(history, coeffs):
+    return np.dot(coeffs, history[-len(coeffs):])
 
-# -------------------------
-# Step 4: MA model
-# -------------------------
-def fit_ma(residuals, q):
-    X = np.array([residuals[i:i+q] for i in range(len(residuals)-q)])
-    y = np.array([residuals[i+q] for i in range(len(residuals)-q)])
-    coeffs = np.linalg.lstsq(X, y, rcond=None)[0]
-    return coeffs
+# 4. Moving Average (MA part)
 
-def predict_ma(residuals, coeffs):
-    q = len(coeffs)
-    return np.dot(residuals[-q:], coeffs)
+def predict_ma(errors, q):
+    if len(errors) < q:
+        q = len(errors)
+    return np.mean(errors[-q:]) if q > 0 else 0
 
-# -------------------------
-# Step 5: ARIMA forecast
-# -------------------------
+# 5. Full ARIMA Model
+
 def arima_forecast(series, p, d, q, steps=10):
-    diff_series = difference(series, d)
-    
-    # Fit AR
-    ar_coeffs = fit_ar(diff_series, p)
-    
-    # Residuals for MA
-    ar_predictions = []
-    residuals = []
-    for i in range(p, len(diff_series)):
-        pred = np.dot(diff_series[i-p:i], ar_coeffs)
-        ar_predictions.append(pred)
-        residuals.append(diff_series[i] - pred)
-    
-    # Fit MA
-    if q > 0:
-        ma_coeffs = fit_ma(np.array(residuals), q)
-    else:
-        ma_coeffs = np.array([])
-    
-    # Forecast
-    forecast = []
-    series_copy = diff_series.copy()
-    residuals_copy = residuals.copy()
-    
-    for _ in range(steps):
-        ar_pred = np.dot(series_copy[-p:], ar_coeffs)
-        ma_pred = np.dot(residuals_copy[-q:], ma_coeffs) if len(residuals_copy) >= q and q>0 else 0
-        next_val = ar_pred + ma_pred
-        forecast.append(next_val)
-        series_copy = np.append(series_copy, next_val)
-        residuals_copy = np.append(residuals_copy, 0)
-    
-    # Convert back from differencing
-    last_val = series[-1]
-    for i in range(len(forecast)):
-        forecast[i] += last_val
-        last_val = forecast[i]
-    
-    return forecast
+    history = list(series)
+    errors = []
+    predictions = []
 
-# -------------------------
-# Step 6: Forecast and plot
-# -------------------------
-p, d, q = 2, 1, 2
-forecast_steps = 12
+    # Apply differencing
+    diff_series = difference(history, d)
+    ar_coeffs = fit_ar(diff_series, p)
+
+    for t in range(steps):
+        diff_history = difference(history, d)
+        ar_part = predict_ar(diff_history, ar_coeffs) if len(diff_history) >= p else 0
+        ma_part = predict_ma(errors, q)
+        yhat = ar_part + ma_part
+
+        # Inverse differencing
+        forecast = history[-d] + yhat
+        predictions.append(forecast)
+
+        # Append forecast to history
+        history.append(forecast)
+
+        # Compute error
+        if len(history) > len(series):
+            error = series[len(history) - 1] - forecast if (len(series) > len(history) - 1) else 0
+            errors.append(error)
+
+    return predictions
+
+# 6. Run Model
+
+p, d, q = 2, 1, 2   # ARIMA parameters
+forecast_steps = 20
+
 forecast = arima_forecast(ts, p, d, q, steps=forecast_steps)
 
-plt.plot(ts, label='Actual')
-plt.plot(range(len(ts), len(ts)+forecast_steps), forecast, label='Forecast', color='red')
-plt.title("ARIMA Forecast")
-plt.xlabel("Month")
-plt.ylabel("Passengers")
-plt.legend()
-plt.show()
+# 7. Evaluation
 
-# -------------------------
-# Step 7: Evaluation
-# -------------------------
-# Compare last points only
-if forecast_steps <= len(ts):
-    mse = mean_squared_error(ts[-forecast_steps:], forecast)
-    mae = mean_absolute_error(ts[-forecast_steps:], forecast)
-    print("MSE:", mse)
-    print("MAE:", mae)
-else:
-    print("Forecast steps exceed dataset length; skipping evaluation.")
+test = ts[-forecast_steps:]
+pred = forecast[:len(test)]
+
+mse = mean_squared_error(test, pred)
+mae = mean_absolute_error(test, pred)
+
+print("MSE:", mse)
+print("MAE:", mae)
+
+# 8. Visualization
+
+plt.figure(figsize=(10,5))
+plt.plot(ts, label='Actual Data', color='blue')
+plt.plot(range(len(ts), len(ts) + forecast_steps), forecast, label='Forecast', color='red')
+plt.legend()
+plt.title("ARIMA Forecast on Apple Stock Prices")
+plt.show()

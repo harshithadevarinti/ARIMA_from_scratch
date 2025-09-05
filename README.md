@@ -1,35 +1,50 @@
 # ARIMA from Scratch (Python + NumPy)
 
-## 📌 Objective
-The goal of this project was to implement the ARIMA (AutoRegressive Integrated Moving Average) model **from scratch** in Python using only `numpy` and `pandas` (without high-level libraries like `statsmodels`).
+# Objective
+The goal of this project was to implement the ARIMA (AutoRegressive Integrated Moving Average) model **from scratch** in Python using only `numpy` and `pandas` (without high-level libraries like `statsmodels`).  
 
-## 📂 Dataset
-- Dataset: Airline Passengers (monthly total international airline passengers, 1949–1960)
-- Source: [Airline Passengers Dataset](https://raw.githubusercontent.com/jbrownlee/Datasets/master/airline-passengers.csv)
+This demonstrates understanding of **differencing, autoregression, and moving average** in time series forecasting.
 
-## ⚙️ Implementation
-- Differencing for stationarity (I part)  
+---
+
+# Dataset
+- Dataset: **Apple Stock Prices**  
+- Source: [Apple Finance Dataset](https://raw.githubusercontent.com/plotly/datasets/master/finance-charts-apple.csv)  
+- Column Used: `AAPL.Close` (daily closing price)  
+
+---
+
+# Implementation
+- Differencing for stationarity (**I part**)  
 - Autoregression (AR) using lag values  
 - Moving Average (MA) using residuals  
-- Combined ARIMA(p,d,q) forecasting  
-- Evaluation using **MSE** and **MAE**
+- Combined ARIMA(p,d,q) model for forecasting  
+- Evaluation using **MSE** and **MAE**  
 
-## 📊 Results
-- **First 10 values:** `[112. 118. 132. 129. 121. 135. 148. 148. 136. 119.]`  
-- **MSE:** 6069.79  
-- **MAE:** 60.07  
+---
 
-The forecast plot shows predicted values vs actual values.
+# Results
+- **First 10 values:** `[27.950001 28.122499 27.8575 28.385   28.5175 28.5625 28.3675 28.23 28.34 28.122499]`  
+- **MSE:** (printed when running code)  
+- **MAE:** (printed when running code)  
 
-## 🛠️ Tools Used
-- Python 3.13
-- NumPy
-- Pandas
-- Matplotlib
-- scikit-learn (for evaluation metrics only)
+Forecast plot shows:  
+- Blue line = Actual stock closing prices  
+- Red line = Predicted future values  
 
-## 🚀 How to Run
-```bash
-git clone https://github.com/your-username/ARIMA-from-scratch.git
-cd ARIMA-from-scratch
-python arima_from_scratch.py
+---
+
+# Tools Used
+- Python 3.13  
+- NumPy  
+- Pandas  
+- Matplotlib  
+- scikit-learn (for evaluation metrics only)  
+
+---
+
+# How to Run
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/harshithadevarinti/ARIMA_from_scratch.git
+   cd ARIMA_from_scratch
