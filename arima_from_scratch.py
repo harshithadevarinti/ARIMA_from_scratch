@@ -98,3 +98,4 @@ plt.plot(range(len(ts), len(ts) + forecast_steps), forecast, label='Forecast', c
 plt.legend()
 plt.title("ARIMA Forecast on Apple Stock Prices")
 plt.show()
+print("this is for demonstrating branches")
